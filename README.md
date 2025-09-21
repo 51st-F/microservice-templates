@@ -1,9 +1,6 @@
-# FastAPI + Naive UI 開發環境
+# 微服務模板 - FastAPI + Vue 3 全棧開發環境
 
-這是一個使用 Docker Compose 的完整開發環境，包含：
-
-- **FastAPI 後端**：使用 Poetry 管理依賴的 Python 後端 API
-- **Naive UI 前端**：基於 Vue 3 和 Naive UI 的現代前端界面
+這是一個完整的微服務開發模板，包含模組化的前端架構和功能完整的後端 API。
 
 ## 項目結構
 
@@ -11,7 +8,7 @@
 .
 ├── backend/                 # FastAPI 後端
 │   ├── Dockerfile
-│   ├── pyproject.toml      # Poetry 配置文件
+│   ├── pyproject.toml      # Poetry 依賴管理
 │   ├── main.py             # FastAPI 應用主文件
 │   ├── env.example         # 環境變量示例
 │   └── postgres/           # PostgreSQL 模組
@@ -20,16 +17,24 @@
 │       ├── models.py       # Pydantic 模型
 │       ├── routers.py      # API 路由
 │       └── check_connection.py  # 連接檢查腳本
-├── frontend/               # Naive UI 前端
+├── frontend/               # Vue 3 前端（模組化架構）
 │   ├── Dockerfile
 │   ├── package.json
 │   ├── vite.config.ts
 │   ├── index.html
 │   └── src/
+│       ├── App.vue         # 主應用組件
 │       ├── main.ts
-│       ├── App.vue
-│       └── components/
-│           └── PostgresManager.vue  # PostgreSQL 管理組件
+│       ├── components/     # 組件目錄
+│       │   ├── AppHeader.vue      # 應用標題和主題切換
+│       │   ├── HelloWorld.vue     # Hello World 測試組件
+│       │   ├── MongoDBTest.vue    # MongoDB 測試組件
+│       │   ├── PostgresManager.vue # PostgreSQL 管理組件
+│       │   └── ThemeToggle.vue    # 主題切換組件
+│       └── composables/    # 組合式函數目錄
+│           ├── useTheme.js        # 主題管理邏輯
+│           ├── useHelloWorld.js   # Hello World API 邏輯
+│           └── useMongoDB.js      # MongoDB API 邏輯
 ├── docker-compose.yml      # Docker Compose 配置
 └── README.md
 ```
@@ -60,22 +65,20 @@ docker-compose down
 docker-compose down -v
 ```
 
-## 開發說明
+## 技術特色
 
-### 後端開發
+### 後端特色
+- **FastAPI**：現代化的 Python Web 框架，自動生成 API 文檔
+- **Poetry**：依賴管理和虛擬環境管理
+- **異步支持**：使用 Motor 異步 MongoDB 驅動
+- **模組化設計**：清晰的代碼結構和職責分離
 
-- 使用 Poetry 管理 Python 依賴
-- FastAPI 提供自動生成的 API 文檔
-- 支持熱重載開發
-- 使用 Motor 異步 MongoDB 驅動
-
-### 前端開發
-
-- 使用 Vue 3 + TypeScript
-- Naive UI 組件庫
-- Vite 構建工具
-- 支持熱重載開發
-- 內建明暗模式切換功能
+### 前端特色
+- **Vue 3 + Composition API**：現代化的響應式框架
+- **模組化架構**：組件和 composables 分離，提高可維護性
+- **TypeScript**：類型安全的開發體驗
+- **Vite**：快速的構建工具和熱重載
+- **主題系統**：完整的明暗模式支持，自動記憶用戶偏好
 
 ## API 端點
 
@@ -167,34 +170,48 @@ curl http://localhost:8000/postgres/info
 
 如果您想使用 Docker Compose 中的 PostgreSQL，請取消註釋 `docker-compose.yml` 中的 PostgreSQL 服務。
 
-## 明暗模式功能
+## 前端模組化架構
 
-### 主題切換
+### 組件設計
+- **AppHeader**：應用標題和主題切換
+- **HelloWorld**：後端連接測試組件
+- **MongoDBTest**：MongoDB 功能測試組件
+- **PostgresManager**：完整的 PostgreSQL 管理界面
+- **ThemeToggle**：可重用的主題切換組件
 
-前端應用支援明暗模式切換：
+### Composables（組合式函數）
+- **useTheme**：主題狀態管理和切換邏輯
+- **useHelloWorld**：Hello World API 調用邏輯
+- **useMongoDB**：MongoDB API 調用邏輯
 
-1. **自動檢測**：首次訪問時會自動檢測系統偏好設定
-2. **手動切換**：點擊右上角的 🌙/☀️ 按鈕進行切換
-3. **記憶功能**：主題偏好會自動保存到瀏覽器本地存儲
-4. **平滑過渡**：所有主題切換都有平滑的動畫效果
+### 主題系統
+- **自動檢測**：首次訪問時檢測系統偏好
+- **手動切換**：右上角 🌙/☀️ 按鈕
+- **持久化**：主題偏好保存到 localStorage
+- **響應式**：支持手機和桌面設備
 
-### 主題特色
+## 開發優勢
 
-- **淺色模式**：清爽的白色背景，適合日間使用
-- **深色模式**：護眼的深色背景，適合夜間使用
-- **響應式設計**：在手機和桌面設備上都有良好的顯示效果
-- **無障礙設計**：保持良好的對比度和可讀性
+### 模組化設計
+- **可維護性**：每個功能模組獨立，易於維護和修改
+- **可重用性**：組件和 composables 可在其他項目中重用
+- **可測試性**：獨立的模組更容易進行單元測試
+- **代碼組織**：清晰的目錄結構和職責分離
+
+### 開發體驗
+- **熱重載**：前後端都支持熱重載開發
+- **類型安全**：TypeScript 提供完整的類型檢查
+- **自動文檔**：FastAPI 自動生成 API 文檔
+- **Docker化**：一鍵啟動完整的開發環境
 
 ## 故障排除
 
 ### 常見問題
-
 1. **端口衝突**: 確保 3000、8000、27018 端口未被占用
 2. **權限問題**: 在 Linux/Mac 上可能需要使用 `sudo`
 3. **網絡問題**: 確保 Docker 網絡正常工作
 
 ### 查看日誌
-
 ```bash
 # 查看所有服務日誌
 docker-compose logs
@@ -202,11 +219,9 @@ docker-compose logs
 # 查看特定服務日誌
 docker-compose logs backend
 docker-compose logs frontend
-docker-compose logs mongodb
 ```
 
 ### 重新構建
-
 ```bash
 # 重新構建所有服務
 docker-compose up --build
@@ -217,6 +232,6 @@ docker-compose up --build backend
 
 ## 技術棧
 
-- **後端**: FastAPI, Poetry, Motor, Pydantic
-- **前端**: Vue 3, Naive UI, TypeScript, Vite, Axios
+- **後端**: FastAPI, Poetry, Motor, Pydantic, PostgreSQL
+- **前端**: Vue 3, TypeScript, Vite, Axios, CSS Variables
 - **容器化**: Docker, Docker Compose
