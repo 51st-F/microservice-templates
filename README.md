@@ -1,10 +1,9 @@
-# FastAPI + Naive UI + MongoDB Docker Compose 開發環境
+# FastAPI + Naive UI 開發環境
 
 這是一個使用 Docker Compose 的完整開發環境，包含：
 
 - **FastAPI 後端**：使用 Poetry 管理依賴的 Python 後端 API
 - **Naive UI 前端**：基於 Vue 3 和 Naive UI 的現代前端界面
-- **MongoDB 資料庫**：NoSQL 資料庫用於數據存儲
 
 ## 項目結構
 
@@ -23,8 +22,6 @@
 │   └── src/
 │       ├── main.ts
 │       └── App.vue
-├── mongo-init/             # MongoDB 初始化腳本
-│   └── init.js
 ├── docker-compose.yml      # Docker Compose 配置
 └── README.md
 ```
@@ -42,7 +39,6 @@ docker-compose up -d
 - **前端界面**: http://localhost:3000
 - **後端 API**: http://localhost:8000
 - **API 文檔**: http://localhost:8000/docs
-- **MongoDB**: localhost:27018
 
 ### 3. 停止服務
 
@@ -72,12 +68,6 @@ docker-compose down -v
 - Vite 構建工具
 - 支持熱重載開發
 
-### 數據庫
-
-- MongoDB 7.0
-- 自動初始化示例數據
-- 持久化數據存儲
-
 ## API 端點
 
 - `GET /` - 健康檢查
@@ -92,12 +82,6 @@ docker-compose down -v
 ### 後端環境變量
 
 - `MONGODB_URL`: MongoDB 連接字符串
-
-### MongoDB 環境變量
-
-- `MONGO_INITDB_ROOT_USERNAME`: 管理員用戶名
-- `MONGO_INITDB_ROOT_PASSWORD`: 管理員密碼
-- `MONGO_INITDB_DATABASE`: 初始數據庫名稱
 
 ## 故障排除
 
@@ -133,5 +117,4 @@ docker-compose up --build backend
 
 - **後端**: FastAPI, Poetry, Motor, Pydantic
 - **前端**: Vue 3, Naive UI, TypeScript, Vite, Axios
-- **資料庫**: MongoDB 7.0
 - **容器化**: Docker, Docker Compose
