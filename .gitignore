@@ -131,3 +131,5 @@ public
 # Temporary folders
 tmp/
 temp/
+
+git_diff.txt

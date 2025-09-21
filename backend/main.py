@@ -6,6 +6,9 @@ from typing import List, Optional
 import os
 from dotenv import load_dotenv
 
+# 導入 PostgreSQL 相關模組
+from postgres import postgres_router, close_postgres_connection
+
 load_dotenv()
 
 app = FastAPI(title="FastAPI Backend", version="1.0.0")
@@ -23,6 +26,9 @@ app.add_middleware(
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://mongodb:27017")
 client = AsyncIOMotorClient(MONGODB_URL)
 db = client.testdb
+
+# 註冊路由
+app.include_router(postgres_router)
 
 # Pydantic 模型
 class Item(BaseModel):
@@ -57,6 +63,8 @@ async def startup_db_client():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+    # 關閉 PostgreSQL 連接池
+    await close_postgres_connection()
 
 @app.get("/")
 async def root():
@@ -157,3 +165,5 @@ async def delete_item(item_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted successfully"}
+
+# 舊的 PostgreSQL 測試端點已移至 /postgres/test
