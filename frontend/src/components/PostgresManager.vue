@@ -18,6 +18,9 @@
       <!-- 自定義查詢 -->
       <CustomQuery />
 
+      <!-- 股票清單 -->
+      <StockList />
+
       <!-- 錯誤顯示 -->
       <div v-if="error" class="error">
         錯誤: {{ error }}
@@ -33,7 +36,8 @@ import {
   DatabaseInfo,
   TablesList,
   TableDetail,
-  CustomQuery
+  CustomQuery,
+  StockList
 } from './PostgresManager'
 
 export default {
@@ -43,7 +47,8 @@ export default {
     DatabaseInfo,
     TablesList,
     TableDetail,
-    CustomQuery
+    CustomQuery,
+    StockList
   },
   setup() {
     const error = ref(null)

@@ -13,7 +13,8 @@
     "naive-ui": "^2.34.4",
     "axios": "^1.6.2",
     "@vicons/ionicons5": "^0.12.0",
-    "@vicons/material": "^0.12.0"
+    "@vicons/material": "^0.12.0",
+    "echarts": "^6.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.0",
