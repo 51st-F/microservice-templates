@@ -1,0 +1,5 @@
+export { default as ConnectionTest } from './ConnectionTest.vue'
+export { default as DatabaseInfo } from './DatabaseInfo.vue'
+export { default as TablesList } from './TablesList.vue'
+export { default as TableDetail } from './TableDetail.vue'
+export { default as CustomQuery } from './CustomQuery.vue'

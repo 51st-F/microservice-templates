@@ -3,7 +3,7 @@
     <AppHeader />
     
     <main class="app-main">
-      <HelloWorld />
+      <!-- <HelloWorld /> -->
       <MongoDBTest />
       <PostgresManager />
     </main>
