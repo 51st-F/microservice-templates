@@ -1,8 +1,17 @@
 import { ref, computed } from 'vue'
 
-export function useTheme() {
-  const isDark = ref(false)
+// 全局主題狀態
+const isDark = ref(false)
 
+// 主題變更監聽器列表
+const listeners = new Set()
+
+// 通知所有監聽器主題已變更
+const notifyListeners = () => {
+  listeners.forEach(listener => listener(isDark.value))
+}
+
+export function useTheme() {
   const themeClass = computed(() => {
     return isDark.value ? 'dark-theme' : 'light-theme'
   })
@@ -17,6 +26,7 @@ export function useTheme() {
       isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
     }
     applyTheme()
+    notifyListeners()
   }
 
   const toggleTheme = () => {
@@ -24,6 +34,7 @@ export function useTheme() {
     applyTheme()
     // 保存到 localStorage
     localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+    notifyListeners()
   }
 
   const applyTheme = () => {
@@ -37,11 +48,19 @@ export function useTheme() {
     }
   }
 
+  // 訂閱主題變更
+  const subscribe = (callback) => {
+    listeners.add(callback)
+    // 返回取消訂閱函數
+    return () => listeners.delete(callback)
+  }
+
   return {
     isDark,
     themeClass,
     initTheme,
     toggleTheme,
-    applyTheme
+    applyTheme,
+    subscribe
   }
 }

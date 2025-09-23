@@ -36,14 +36,19 @@
 │       │   │   ├── TablesList.vue        # 資料表列表顯示
 │       │   │   ├── TableDetail.vue       # 資料表詳細信息顯示
 │       │   │   ├── CustomQuery.vue       # 自定義 SQL 查詢
-│       │   │   ├── index.js              # 組件導出文件
-│       │   │   └── README.md             # 模組化組件文檔
+│       │   │   ├── StockList.vue         # 股票清單管理（主組件）
+│       │   │   ├── StockSearch.vue       # 股票搜尋組件
+│       │   │   ├── StockTable.vue        # 股票表格組件
+│       │   │   ├── StockChart.vue        # 股票圖表組件
+│       │   │   └── index.js              # 組件導出文件
 │       │   └── ThemeToggle.vue    # 主題切換組件
 │       └── composables/    # 組合式函數目錄
 │           ├── useTheme.js        # 主題管理邏輯
 │           ├── useHelloWorld.js   # Hello World API 邏輯
 │           ├── useMongoDB.js      # MongoDB API 邏輯
-│           └── usePostgres.js     # PostgreSQL API 邏輯
+│           ├── usePostgres.js     # PostgreSQL API 邏輯
+│           ├── useStockList.js    # 股票清單邏輯
+│           └── useStockChart.js   # 股票圖表邏輯
 ├── docker-compose.yml      # Docker Compose 配置
 └── README.md
 ```
@@ -194,12 +199,18 @@ curl http://localhost:8000/postgres/info
 - **TablesList**：資料表列表顯示和管理
 - **TableDetail**：資料表詳細信息顯示
 - **CustomQuery**：自定義 SQL 查詢功能
+- **StockList**：股票清單管理（已模組化）
+- **StockSearch**：股票搜尋輸入框組件
+- **StockTable**：股票列表表格組件
+- **StockChart**：股票K線圖表組件
 
 ### Composables（組合式函數）
 - **useTheme**：主題狀態管理和切換邏輯
 - **useHelloWorld**：Hello World API 調用邏輯
 - **useMongoDB**：MongoDB API 調用邏輯
 - **usePostgres**：PostgreSQL API 調用邏輯（統一管理所有資料庫操作）
+- **useStockList**：股票清單的載入、搜尋和過濾邏輯
+- **useStockChart**：股票圖表的數據載入、渲染和圖表管理
 
 ### 主題系統
 - **自動檢測**：首次訪問時檢測系統偏好
@@ -251,6 +262,19 @@ export default {
 
 ### 樣式設計
 每個組件都有自己的 scoped 樣式，主組件只保留必要的容器樣式，確保樣式隔離和可維護性。
+
+### StockList 模組化重構
+StockList 組件已成功模組化，拆分為多個更小、更易維護的組件：
+
+#### 模組化優勢
+- **關注點分離**：每個組件都有單一職責，邏輯與UI分離
+- **可重用性**：子組件可以在其他地方重用，Composables 可在其他組件中使用
+- **可維護性**：代碼更清晰，修改某個功能時影響範圍更小
+- **性能優化**：組件可以獨立更新，更好地控制渲染時機
+
+#### 組件通信
+- **Props 向下傳遞**：StockSearch 接收 searchQuery，StockTable 接收 stocks 和 searchQuery，StockChart 接收 selectedStock
+- **Events 向上傳遞**：StockSearch 發送 update:searchQuery 和 clear 事件，StockTable 發送 select-stock 事件
 
 ## 開發優勢
 

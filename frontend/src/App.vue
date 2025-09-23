@@ -1,6 +1,8 @@
 <template>
   <div :class="themeClass">
-    <AppHeader />
+    <div class="top-bar">
+      <ThemeToggle />
+    </div>
     
     <main class="app-main">
       <!-- <HelloWorld /> -->
@@ -13,17 +15,17 @@
 <script>
 import { useTheme } from './composables/useTheme'
 import { useHelloWorld } from './composables/useHelloWorld'
-import AppHeader from './components/AppHeader.vue'
-import HelloWorld from './components/HelloWorld.vue'
-import MongoDBTest from './components/MongoDBTest.vue'
+import ThemeToggle from './components/ThemeToggle.vue'
+// import HelloWorld from './components/HelloWorld.vue'
+// import MongoDBTest from './components/MongoDBTest.vue'
 import PostgresManager from './components/PostgresManager.vue'
 
 export default {
   name: 'App',
   components: {
-    AppHeader,
-    HelloWorld,
-    MongoDBTest,
+    ThemeToggle,
+    // HelloWorld,
+    // MongoDBTest,
     PostgresManager
   },
   setup() {
@@ -96,6 +98,20 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 頂部工具欄 */
+.top-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 1rem;
+  pointer-events: none; /* 允許點擊穿透到下方元素 */
+}
+
+.top-bar > * {
+  pointer-events: auto; /* 恢復 ThemeToggle 的點擊事件 */
 }
 
 /* 主內容區域 */

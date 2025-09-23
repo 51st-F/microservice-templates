@@ -3,6 +3,9 @@
     <div class="card">
       <h2>PostgreSQL 資料庫管理</h2>
       
+      <!-- 股票清單 -->
+      <StockList />
+
       <!-- 連接測試 -->
       <!-- <ConnectionTest @connection-result="handleConnectionResult" /> -->
 
@@ -17,9 +20,6 @@
 
       <!-- 自定義查詢 -->
       <CustomQuery />
-
-      <!-- 股票清單 -->
-      <StockList />
 
       <!-- 錯誤顯示 -->
       <div v-if="error" class="error">
@@ -83,19 +83,19 @@ export default {
 }
 
 .postgres-manager .card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  /* background-color: var(--bg-card); */
+  /* border: 1px solid var(--border-color); */
+  /* border-radius: 12px; */
   padding: 1.5rem;
   margin-bottom: 2rem;
-  box-shadow: var(--shadow);
+  /* box-shadow: var(--shadow); */
   transition: all 0.3s ease;
 }
 
-.postgres-manager .card:hover {
+/* .postgres-manager .card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-}
+} */
 
 .postgres-manager .card h2 {
   margin: 0 0 1rem 0;

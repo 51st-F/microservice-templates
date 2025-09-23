@@ -12,12 +12,35 @@
 </template>
 
 <script>
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useTheme } from '../composables/useTheme'
 
 export default {
   name: 'ThemeToggle',
   setup() {
-    const { isDark, toggleTheme } = useTheme()
+    const { toggleTheme, subscribe } = useTheme()
+    const isDark = ref(false)
+    
+    // 訂閱主題變更
+    let unsubscribe
+    onMounted(() => {
+      unsubscribe = subscribe((darkMode) => {
+        isDark.value = darkMode
+      })
+      // 初始化當前主題狀態
+      const savedTheme = localStorage.getItem('theme')
+      if (savedTheme) {
+        isDark.value = savedTheme === 'dark'
+      } else {
+        isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+      }
+    })
+    
+    onUnmounted(() => {
+      if (unsubscribe) {
+        unsubscribe()
+      }
+    })
     
     return {
       isDark,
@@ -31,6 +54,7 @@ export default {
 .theme-toggle {
   display: flex;
   align-items: center;
+  position: relative;
 }
 
 .theme-button {
@@ -46,6 +70,11 @@ export default {
   font-size: 1.2rem;
   transition: all 0.3s ease;
   box-shadow: var(--shadow);
+  position: relative;
+  z-index: 1001;
+  /* 確保按鈕不會影響其他元素的布局 */
+  margin: 0;
+  padding: 0;
 }
 
 .theme-button:hover {
