@@ -5,7 +5,7 @@
         :value="searchQuery" 
         @input="$emit('update:searchQuery', $event.target.value)"
         type="text" 
-        placeholder="搜尋股票代號或名稱..." 
+        placeholder="搜尋股票代號、名稱、市場或產業類型..." 
         class="search-input"
       />
       <div v-if="searchQuery" class="search-clear" @click="$emit('clear')">

@@ -5,6 +5,7 @@
         <div class="stock-cell">股票代號</div>
         <div class="stock-cell">股票名稱</div>
         <div class="stock-cell">市場</div>
+        <div class="stock-cell">產業類型</div>
       </div>
       <div 
         v-for="(stock, index) in stocks" 
@@ -16,6 +17,7 @@
         <div class="stock-cell stock-id">{{ stock.stock_id }}</div>
         <div class="stock-cell stock-name">{{ stock.stock_name }}</div>
         <div class="stock-cell stock-market">{{ stock.market || '-' }}</div>
+        <div class="stock-cell stock-industry">{{ stock.industry_type || '-' }}</div>
       </div>
     </div>
     <div v-if="stocks.length === 0 && searchQuery" class="no-results">
@@ -56,7 +58,7 @@ export default {
 
 .stock-header {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-columns: 1fr 2fr 1fr 1.5fr;
   background-color: var(--bg-secondary);
   font-weight: 600;
   color: var(--text-primary);
@@ -64,7 +66,7 @@ export default {
 
 .stock-row {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-columns: 1fr 2fr 1fr 1.5fr;
   border-top: 1px solid var(--border-color);
   transition: background-color 0.2s ease;
   cursor: pointer;
@@ -110,6 +112,12 @@ export default {
   font-weight: 500;
 }
 
+.stock-industry {
+  color: var(--text-primary);
+  text-align: center;
+  font-weight: 500;
+}
+
 .no-results {
   text-align: center;
   color: var(--text-secondary);
@@ -138,6 +146,11 @@ export default {
   }
   
   .stock-market {
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .stock-industry {
     background-color: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
   }

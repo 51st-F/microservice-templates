@@ -9,7 +9,16 @@ export function useStockList() {
   // 載入股票清單
   const loadStockList = async () => {
     try {
-      const query = 'SELECT DISTINCT stock_id, stock_name, market FROM tw_stock_price ORDER BY stock_id'
+      const query = `
+        SELECT DISTINCT 
+          sp.stock_id, 
+          sp.stock_name, 
+          sp.market,
+          mr.industry_type
+        FROM tw_stock_price sp
+        LEFT JOIN monthly_revenue mr ON sp.stock_id = mr.stock_id
+        ORDER BY sp.stock_id
+      `
       const result = await executeQuery(query, 3000, 0)
       
       if (result.success) {
@@ -33,7 +42,8 @@ export function useStockList() {
     return stockList.value.filter(stock => 
       stock.stock_id.toLowerCase().includes(query) || 
       stock.stock_name.toLowerCase().includes(query) ||
-      (stock.market && stock.market.toLowerCase().includes(query))
+      (stock.market && stock.market.toLowerCase().includes(query)) ||
+      (stock.industry_type && stock.industry_type.toLowerCase().includes(query))
     )
   })
 
