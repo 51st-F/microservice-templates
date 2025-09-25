@@ -1,10 +1,13 @@
 <template>
   <div class="postgres-manager">
     <div class="card">
-      <h2>PostgreSQL 資料庫管理</h2>
+      <h2>TW STOCK DATABASE</h2>
       
       <!-- 股票清單 -->
       <StockList />
+
+      <!-- 產業分析 -->
+      <IndustryAnalysis />
 
       <!-- 連接測試 -->
       <!-- <ConnectionTest @connection-result="handleConnectionResult" /> -->
@@ -37,7 +40,8 @@ import {
   TablesList,
   TableDetail,
   CustomQuery,
-  StockList
+  StockList,
+  IndustryAnalysis
 } from './PostgresManager'
 
 export default {
@@ -48,7 +52,8 @@ export default {
     TablesList,
     TableDetail,
     CustomQuery,
-    StockList
+    StockList,
+    IndustryAnalysis
   },
   setup() {
     const error = ref(null)

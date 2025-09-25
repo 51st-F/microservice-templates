@@ -116,7 +116,7 @@ body {
 
 /* 主內容區域 */
 .app-main {
-  max-width: 1200px;
+  /* max-width: 1200px; */
   margin: 0 auto;
   padding: 0 2rem 2rem;
 }
