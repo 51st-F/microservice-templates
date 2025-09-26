@@ -98,18 +98,14 @@ export function useInstitutionalTrading() {
     }
   }
 
-  // 格式化金額
+  // 格式化金額 - 統一顯示為萬單位到小數點第一位
   const formatAmount = (amount) => {
     if (amount === null || amount === undefined) return '-'
     const numAmount = parseFloat(amount)
     if (isNaN(numAmount)) return '-'
     
-    if (Math.abs(numAmount) >= 100000000) {
-      return (numAmount / 100000000).toFixed(2) + '億'
-    } else if (Math.abs(numAmount) >= 10000) {
-      return (numAmount / 10000).toFixed(2) + '萬'
-    }
-    return numAmount.toLocaleString()
+    // 統一轉換為萬單位，顯示到小數點第一位
+    return (numAmount / 10000).toFixed(1) + '萬'
   }
 
   // 獲取金額樣式類別

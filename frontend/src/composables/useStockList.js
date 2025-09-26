@@ -1,34 +1,30 @@
 import { ref, computed } from 'vue'
-import { usePostgres } from './usePostgres'
+import axios from 'axios'
 
 export function useStockList() {
-  const { loading, error, executeQuery } = usePostgres()
+  const loading = ref(false)
+  const error = ref(null)
   const stockList = ref([])
   const searchQuery = ref('')
 
   // 載入股票清單
   const loadStockList = async () => {
+    loading.value = true
+    error.value = null
     try {
-      const query = `
-        SELECT DISTINCT 
-          sp.stock_id, 
-          sp.stock_name, 
-          sp.market,
-          mr.industry_type
-        FROM tw_stock_price sp
-        LEFT JOIN monthly_revenue mr ON sp.stock_id = mr.stock_id
-        ORDER BY sp.stock_id
-      `
-      const result = await executeQuery(query, 3000, 0)
+      const response = await axios.get('http://localhost:8000/postgres/stock-list')
       
-      if (result.success) {
-        stockList.value = result.data
+      if (response.data.success) {
+        stockList.value = response.data.data
       } else {
-        throw new Error(result.message || '查詢失敗')
+        throw new Error(response.data.message || '查詢失敗')
       }
     } catch (err) {
+      error.value = err.message || '載入股票清單失敗'
       console.error('載入股票清單失敗:', err)
       throw err
+    } finally {
+      loading.value = false
     }
   }
 

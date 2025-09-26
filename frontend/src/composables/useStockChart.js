@@ -1,9 +1,10 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { usePostgres } from './usePostgres'
+import axios from 'axios'
 import { useTheme } from './useTheme'
 
 export function useStockChart() {
-  const { loading, error, executeQuery } = usePostgres()
+  const loading = ref(false)
+  const error = ref(null)
   const chartData = ref([])
   const selectedStock = ref(null)
   const chartContainer = ref(null)
@@ -17,24 +18,28 @@ export function useStockChart() {
 
   // 載入股票K線數據
   const loadStockChartData = async (stockId) => {
+    loading.value = true
+    error.value = null
     try {
       console.log('useStockChart: loading data for stock:', stockId)
-      const query = `SELECT trade_date, open, close, high, low, shares FROM tw_stock_price WHERE stock_id = '${stockId}' ORDER BY trade_date DESC`
-      const result = await executeQuery(query, 5000, 0)
+      const response = await axios.get(`http://localhost:8000/postgres/stock-chart/${stockId}`)
       
-      if (result.success) {
-        console.log('useStockChart: query successful, got', result.data.length, 'records')
-        chartData.value = result.data
+      if (response.data.success) {
+        console.log('useStockChart: query successful, got', response.data.data.length, 'records')
+        chartData.value = response.data.data
         await nextTick()
         console.log('useStockChart: calling renderChart')
         renderChart()
       } else {
-        throw new Error(result.message || '查詢K線數據失敗')
+        throw new Error(response.data.message || '查詢K線數據失敗')
       }
     } catch (err) {
+      error.value = err.message || '載入K線數據失敗'
       console.error('載入K線數據失敗:', err)
       chartData.value = []
       throw err
+    } finally {
+      loading.value = false
     }
   }
 

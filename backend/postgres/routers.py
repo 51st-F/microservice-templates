@@ -543,3 +543,123 @@ async def get_industry_trading_details(market: str, industry_type: str):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"獲取產業詳細買賣超失敗: {str(e)}")
+
+@postgres_router.get("/industry-analysis")
+async def get_industry_analysis():
+    """獲取產業分析數據"""
+    try:
+        conn = await get_connection()
+        try:
+            query = """
+                SELECT 
+                  COALESCE(mr.industry_type, '未分類') as industry_type,
+                  COALESCE(sp.market, '未分類') as market,
+                  COUNT(DISTINCT sp.stock_id) as stock_count,
+                  CASE 
+                    WHEN SUM(sp.open) > 0 
+                    THEN ROUND(((SUM(sp.close) - SUM(sp.open)) / SUM(sp.open)) * 100, 2)
+                    ELSE 0 
+                  END as avg_change_percent,
+                  COALESCE(SUM(sp.shares), 0) as total_volume
+                FROM tw_stock_price sp
+                LEFT JOIN (
+                  SELECT DISTINCT ON (stock_id)
+                      stock_id, industry_type, report_month
+                  FROM monthly_revenue
+                  ORDER BY stock_id, report_month DESC
+                ) mr ON sp.stock_id = mr.stock_id
+                WHERE sp.trade_date = (SELECT MAX(trade_date) FROM tw_stock_price)
+                AND sp.stock_id NOT LIKE '00%'
+                GROUP BY COALESCE(mr.industry_type, '未分類'), COALESCE(sp.market, '未分類')
+                ORDER BY total_volume DESC
+            """
+            
+            rows = await conn.fetch(query)
+            
+            # 轉換結果
+            data = []
+            for row in rows:
+                data.append({
+                    'industry_type': row['industry_type'],
+                    'market': row['market'],
+                    'stock_count': int(row['stock_count']),
+                    'avg_change_percent': float(row['avg_change_percent']) if row['avg_change_percent'] else 0,
+                    'total_volume': float(row['total_volume']) if row['total_volume'] else 0
+                })
+            
+            return {
+                "success": True,
+                "message": "獲取產業分析數據成功",
+                "data": data
+            }
+            
+        finally:
+            await close_connection(conn)
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取產業分析數據失敗: {str(e)}")
+
+@postgres_router.get("/stock-list")
+async def get_stock_list():
+    """獲取股票清單"""
+    try:
+        conn = await get_connection()
+        try:
+            query = """
+                SELECT DISTINCT 
+                  sp.stock_id, 
+                  sp.stock_name, 
+                  sp.market,
+                  mr.industry_type
+                FROM tw_stock_price sp
+                LEFT JOIN monthly_revenue mr ON sp.stock_id = mr.stock_id
+                ORDER BY sp.stock_id
+            """
+            
+            rows = await conn.fetch(query)
+            
+            # 轉換結果
+            data = [dict(row) for row in rows]
+            
+            return {
+                "success": True,
+                "message": "獲取股票清單成功",
+                "data": data
+            }
+            
+        finally:
+            await close_connection(conn)
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取股票清單失敗: {str(e)}")
+
+@postgres_router.get("/stock-chart/{stock_id}")
+async def get_stock_chart_data(stock_id: str):
+    """獲取股票K線圖數據"""
+    try:
+        conn = await get_connection()
+        try:
+            query = """
+                SELECT trade_date, open, close, high, low, shares 
+                FROM tw_stock_price 
+                WHERE stock_id = $1 
+                ORDER BY trade_date DESC
+            """
+            
+            rows = await conn.fetch(query, stock_id)
+            
+            # 轉換結果
+            data = [dict(row) for row in rows]
+            
+            return {
+                "success": True,
+                "message": f"獲取股票 {stock_id} K線數據成功",
+                "data": data,
+                "stock_id": stock_id
+            }
+            
+        finally:
+            await close_connection(conn)
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取股票K線數據失敗: {str(e)}")

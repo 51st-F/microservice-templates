@@ -1,56 +1,32 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { usePostgres } from './usePostgres'
+import axios from 'axios'
 
 export function useIndustryAnalysis() {
-  const { loading, error, executeQuery } = usePostgres()
+  const loading = ref(false)
+  const error = ref(null)
   const industryData = ref([])
   const chartContainer = ref(null)
   let chartInstance = null
 
   // 載入產業分析數據
   const loadIndustryData = async () => {
+    loading.value = true
+    error.value = null
     try {
-      const query = `
-        SELECT 
-          COALESCE(mr.industry_type, '未分類') as industry_type,
-          COALESCE(sp.market, '未分類') as market,
-          COUNT(DISTINCT sp.stock_id) as stock_count,
-          CASE 
-            WHEN SUM(sp.open) > 0 
-            THEN ROUND(((SUM(sp.close) - SUM(sp.open)) / SUM(sp.open)) * 100, 2)
-            ELSE 0 
-          END as avg_change_percent,
-          COALESCE(SUM(sp.shares), 0) as total_volume
-        FROM tw_stock_price sp
-        LEFT JOIN (
-          SELECT DISTINCT ON (stock_id)
-              stock_id, industry_type, report_month
-          FROM monthly_revenue
-          ORDER BY stock_id, report_month DESC
-        ) mr ON sp.stock_id = mr.stock_id
-        WHERE sp.trade_date = (SELECT MAX(trade_date) FROM tw_stock_price)
-        GROUP BY COALESCE(mr.industry_type, '未分類'), COALESCE(sp.market, '未分類')
-      `
+      const response = await axios.get('http://localhost:8000/postgres/industry-analysis')
       
-      const result = await executeQuery(query, 5000, 0)
-      
-      if (result.success) {
-        // 確保數據類型正確並在前端進行排序
-        const processedData = result.data.map(item => ({
-          ...item,
-          avg_change_percent: parseFloat(item.avg_change_percent) || 0,
-          total_volume: parseFloat(item.total_volume) || 0,
-          stock_count: parseInt(item.stock_count) || 0
-        }))
-        
-        industryData.value = processedData.sort((a, b) => b.total_volume - a.total_volume)
-        console.log('產業分析數據載入成功:', result.data.length, '筆記錄')
+      if (response.data.success) {
+        industryData.value = response.data.data
+        console.log('產業分析數據載入成功:', response.data.data.length, '筆記錄')
       } else {
-        throw new Error(result.message || '查詢產業分析數據失敗')
+        throw new Error(response.data.message || '查詢產業分析數據失敗')
       }
     } catch (err) {
+      error.value = err.message || '載入產業分析數據失敗'
       console.error('載入產業分析數據失敗:', err)
       throw err
+    } finally {
+      loading.value = false
     }
   }
 
