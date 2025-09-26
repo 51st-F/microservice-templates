@@ -6,11 +6,8 @@
       <!-- 股票清單 -->
       <StockList />
 
-      <!-- 產業分析 -->
-      <IndustryAnalysis />
-
-      <!-- 三大法人買賣超分析 -->
-      <InstitutionalTrading />
+      <!-- 產業綜合分析 -->
+      <IndustryComprehensive />
 
       <!-- 連接測試 -->
       <!-- <ConnectionTest @connection-result="handleConnectionResult" /> -->
@@ -44,8 +41,7 @@ import {
   TableDetail,
   CustomQuery,
   StockList,
-  IndustryAnalysis,
-  InstitutionalTrading
+  IndustryComprehensive
 } from './PostgresManager'
 
 export default {
@@ -57,8 +53,7 @@ export default {
     TableDetail,
     CustomQuery,
     StockList,
-    IndustryAnalysis,
-    InstitutionalTrading
+    IndustryComprehensive
   },
   setup() {
     const error = ref(null)

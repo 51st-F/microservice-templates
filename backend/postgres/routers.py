@@ -2,10 +2,11 @@
 PostgreSQL 相關的 API 路由
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Dict, Any
+from fastapi import APIRouter, HTTPException, Depends, Query
+from typing import List, Dict, Any, Optional
 import time
 import asyncpg
+from datetime import datetime
 from .connection import get_connection, close_connection, test_connection
 from .models import (
     PostgresConnectionTest,
@@ -372,7 +373,7 @@ async def delete_data(table_name: str, request: DeleteDataRequest):
         raise HTTPException(status_code=500, detail=f"刪除數據失敗: {str(e)}")
 
 @postgres_router.get("/institutional-trading/top-industries")
-async def get_top_institutional_trading_industries():
+async def get_top_institutional_trading_industries(date: Optional[str] = Query(None, description="查詢日期 (YYYY-MM-DD)")):
     """獲取上市櫃三大法人買賣超產業及金額"""
     try:
         conn = await get_connection()
@@ -395,7 +396,10 @@ async def get_top_institutional_trading_industries():
                         FROM monthly_revenue
                         ORDER BY stock_id, report_month DESC
                     ) mr ON tsi.stock_id = mr.stock_id
-                    WHERE tsi.trade_date = (SELECT MAX(trade_date) FROM twse_stock_insti)
+                    WHERE tsi.trade_date = CASE 
+                        WHEN $1::date IS NOT NULL THEN $1::date 
+                        ELSE (SELECT MAX(trade_date) FROM twse_stock_insti) 
+                    END
                     AND tsi.stock_id NOT LIKE '00%'
                     GROUP BY COALESCE(mr.industry_type, '未分類')
                 )
@@ -430,7 +434,10 @@ async def get_top_institutional_trading_industries():
                         FROM monthly_revenue
                         ORDER BY stock_id, report_month DESC
                     ) mr ON tsi.stock_id = mr.stock_id
-                    WHERE tsi.trade_date = (SELECT MAX(trade_date) FROM tpex_stock_insti)
+                    WHERE tsi.trade_date = CASE 
+                        WHEN $1::date IS NOT NULL THEN $1::date 
+                        ELSE (SELECT MAX(trade_date) FROM tpex_stock_insti) 
+                    END
                     AND tsi.stock_id NOT LIKE '00%'
                     GROUP BY COALESCE(mr.industry_type, '未分類')
                 )
@@ -447,9 +454,18 @@ async def get_top_institutional_trading_industries():
                 ORDER BY ABS(total_net_amount) DESC
             """
             
+            # 處理日期參數
+            date_param = None
+            if date:
+                try:
+                    from datetime import datetime
+                    date_param = datetime.strptime(date, '%Y-%m-%d').date()
+                except ValueError:
+                    raise HTTPException(status_code=400, detail="日期格式錯誤，請使用 YYYY-MM-DD 格式")
+            
             # 執行查詢
-            tse_data = await conn.fetch(tse_query)
-            tpex_data = await conn.fetch(tpex_query)
+            tse_data = await conn.fetch(tse_query, date_param)
+            tpex_data = await conn.fetch(tpex_query, date_param)
             
             # 轉換結果
             tse_result = [dict(row) for row in tse_data]
@@ -471,7 +487,7 @@ async def get_top_institutional_trading_industries():
         raise HTTPException(status_code=500, detail=f"獲取三大法人買賣超產業失敗: {str(e)}")
 
 @postgres_router.get("/institutional-trading/industry-details/{market}/{industry_type}")
-async def get_industry_trading_details(market: str, industry_type: str):
+async def get_industry_trading_details(market: str, industry_type: str, date: Optional[str] = Query(None, description="查詢日期 (YYYY-MM-DD)")):
     """獲取特定產業的詳細買賣超標的內容"""
     try:
         conn = await get_connection()
@@ -497,7 +513,10 @@ async def get_industry_trading_details(market: str, industry_type: str):
                         FROM monthly_revenue
                         ORDER BY stock_id, report_month DESC
                     ) mr ON tsi.stock_id = mr.stock_id
-                    WHERE tsi.trade_date = (SELECT MAX(trade_date) FROM {table_name})
+                    WHERE tsi.trade_date = CASE 
+                        WHEN $2::date IS NOT NULL THEN $2::date 
+                        ELSE (SELECT MAX(trade_date) FROM {table_name}) 
+                    END
                     AND COALESCE(mr.industry_type, '未分類') = $1
                     AND tsi.stock_id NOT LIKE '00%'
                     ORDER BY ABS(tsi.total_net) DESC
@@ -519,13 +538,25 @@ async def get_industry_trading_details(market: str, industry_type: str):
                         FROM monthly_revenue
                         ORDER BY stock_id, report_month DESC
                     ) mr ON tsi.stock_id = mr.stock_id
-                    WHERE tsi.trade_date = (SELECT MAX(trade_date) FROM {table_name})
+                    WHERE tsi.trade_date = CASE 
+                        WHEN $2::date IS NOT NULL THEN $2::date 
+                        ELSE (SELECT MAX(trade_date) FROM {table_name}) 
+                    END
                     AND COALESCE(mr.industry_type, '未分類') = $1
                     AND tsi.stock_id NOT LIKE '00%'
                     ORDER BY ABS(tsi.total_net) DESC
                 """
             
-            rows = await conn.fetch(query, industry_type)
+            # 處理日期參數
+            date_param = None
+            if date:
+                try:
+                    from datetime import datetime
+                    date_param = datetime.strptime(date, '%Y-%m-%d').date()
+                except ValueError:
+                    raise HTTPException(status_code=400, detail="日期格式錯誤，請使用 YYYY-MM-DD 格式")
+            
+            rows = await conn.fetch(query, industry_type, date_param)
             
             # 轉換結果
             data = [dict(row) for row in rows]
@@ -545,7 +576,7 @@ async def get_industry_trading_details(market: str, industry_type: str):
         raise HTTPException(status_code=500, detail=f"獲取產業詳細買賣超失敗: {str(e)}")
 
 @postgres_router.get("/industry-analysis")
-async def get_industry_analysis():
+async def get_industry_analysis(date: Optional[str] = Query(None, description="查詢日期 (YYYY-MM-DD)")):
     """獲取產業分析數據"""
     try:
         conn = await get_connection()
@@ -560,7 +591,7 @@ async def get_industry_analysis():
                     THEN ROUND(((SUM(sp.close) - SUM(sp.open)) / SUM(sp.open)) * 100, 2)
                     ELSE 0 
                   END as avg_change_percent,
-                  COALESCE(SUM(sp.shares), 0) as total_volume
+                  COALESCE(SUM(sp.amount) * 10000, 0) as total_volume
                 FROM tw_stock_price sp
                 LEFT JOIN (
                   SELECT DISTINCT ON (stock_id)
@@ -568,20 +599,34 @@ async def get_industry_analysis():
                   FROM monthly_revenue
                   ORDER BY stock_id, report_month DESC
                 ) mr ON sp.stock_id = mr.stock_id
-                WHERE sp.trade_date = (SELECT MAX(trade_date) FROM tw_stock_price)
+                WHERE sp.trade_date = CASE 
+                    WHEN $1::date IS NOT NULL THEN $1::date 
+                    ELSE (SELECT MAX(trade_date) FROM tw_stock_price) 
+                END
                 AND sp.stock_id NOT LIKE '00%'
                 GROUP BY COALESCE(mr.industry_type, '未分類'), COALESCE(sp.market, '未分類')
                 ORDER BY total_volume DESC
             """
             
-            rows = await conn.fetch(query)
+            # 處理日期參數
+            date_param = None
+            if date:
+                try:
+                    from datetime import datetime
+                    date_param = datetime.strptime(date, '%Y-%m-%d').date()
+                except ValueError:
+                    raise HTTPException(status_code=400, detail="日期格式錯誤，請使用 YYYY-MM-DD 格式")
+            
+            rows = await conn.fetch(query, date_param)
             
             # 轉換結果
             data = []
             for row in rows:
+                # 標準化市場名稱：OTC -> TPEX
+                market = 'TPEX' if row['market'] == 'OTC' else row['market']
                 data.append({
                     'industry_type': row['industry_type'],
-                    'market': row['market'],
+                    'market': market,
                     'stock_count': int(row['stock_count']),
                     'avg_change_percent': float(row['avg_change_percent']) if row['avg_change_percent'] else 0,
                     'total_volume': float(row['total_volume']) if row['total_volume'] else 0
@@ -612,14 +657,29 @@ async def get_stock_list():
                   sp.market,
                   mr.industry_type
                 FROM tw_stock_price sp
-                LEFT JOIN monthly_revenue mr ON sp.stock_id = mr.stock_id
+                LEFT JOIN (
+                    SELECT DISTINCT ON (stock_id)
+                        stock_id, industry_type, report_month
+                    FROM monthly_revenue
+                    ORDER BY stock_id, report_month DESC
+                ) mr ON sp.stock_id = mr.stock_id
+                WHERE sp.stock_id NOT LIKE '00%'
                 ORDER BY sp.stock_id
             """
             
             rows = await conn.fetch(query)
             
             # 轉換結果
-            data = [dict(row) for row in rows]
+            data = []
+            for row in rows:
+                # 標準化市場名稱：OTC -> TPEX
+                market = 'TPEX' if row['market'] == 'OTC' else row['market']
+                data.append({
+                    'stock_id': row['stock_id'],
+                    'stock_name': row['stock_name'],
+                    'market': market,
+                    'industry_type': row['industry_type']
+                })
             
             return {
                 "success": True,
@@ -632,6 +692,46 @@ async def get_stock_list():
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"獲取股票清單失敗: {str(e)}")
+
+@postgres_router.get("/latest-trade-date")
+async def get_latest_trade_date():
+    """獲取最新的交易日期"""
+    try:
+        conn = await get_connection()
+        try:
+            # 查詢最新的交易日期（從多個表中選擇最新的）
+            query = """
+                SELECT MAX(latest_date) as latest_trade_date FROM (
+                    SELECT MAX(trade_date) as latest_date FROM tw_stock_price
+                    UNION ALL
+                    SELECT MAX(trade_date) as latest_date FROM twse_stock_insti
+                    UNION ALL
+                    SELECT MAX(trade_date) as latest_date FROM tpex_stock_insti
+                ) dates
+            """
+            
+            result = await conn.fetchval(query)
+            
+            if result:
+                return {
+                    "success": True,
+                    "message": "獲取最新交易日期成功",
+                    "data": {
+                        "latest_trade_date": result.strftime('%Y-%m-%d')
+                    }
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "未找到交易日期數據",
+                    "data": None
+                }
+            
+        finally:
+            await close_connection(conn)
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取最新交易日期失敗: {str(e)}")
 
 @postgres_router.get("/stock-chart/{stock_id}")
 async def get_stock_chart_data(stock_id: str):
