@@ -201,8 +201,9 @@ async def execute_custom_query(request: CustomQueryRequest):
             
             # 添加 LIMIT 和 OFFSET
             query = request.query.strip()
-            if not query.upper().startswith('SELECT'):
-                raise HTTPException(status_code=400, detail="只允許執行 SELECT 查詢")
+            query_upper = query.upper()
+            if not (query_upper.startswith('SELECT') or query_upper.startswith('WITH')):
+                raise HTTPException(status_code=400, detail="只允許執行 SELECT 或 WITH 查詢")
             
             if 'LIMIT' not in query.upper():
                 query += f" LIMIT {request.limit}"
@@ -210,7 +211,10 @@ async def execute_custom_query(request: CustomQueryRequest):
                 query += f" OFFSET {request.offset}"
             
             # 執行查詢
-            rows = await conn.fetch(query)
+            if request.params:
+                rows = await conn.fetch(query, *request.params)
+            else:
+                rows = await conn.fetch(query)
             
             # 轉換結果
             data = []
@@ -366,3 +370,176 @@ async def delete_data(table_name: str, request: DeleteDataRequest):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"刪除數據失敗: {str(e)}")
+
+@postgres_router.get("/institutional-trading/top-industries")
+async def get_top_institutional_trading_industries():
+    """獲取上市櫃三大法人買賣超產業及金額"""
+    try:
+        conn = await get_connection()
+        try:
+            # 查詢上市三大法人買賣超產業
+            tse_query = """
+                WITH industry_trading AS (
+                    SELECT 
+                        COALESCE(mr.industry_type, '未分類') as industry_type,
+                        'TSE' as market,
+                        SUM(tsi.foreign_excl_dealer_net + tsi.foreign_dealer_net) as foreign_net_amount,
+                        SUM(tsi.investment_trust_net) as investment_trust_net_amount,
+                        SUM(tsi.dealer_self_net + tsi.dealer_hedge_net) as dealer_net_amount,
+                        SUM(tsi.total_net) as total_net_amount,
+                        COUNT(DISTINCT tsi.stock_id) as stock_count
+                    FROM twse_stock_insti tsi
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (stock_id)
+                            stock_id, industry_type, report_month
+                        FROM monthly_revenue
+                        ORDER BY stock_id, report_month DESC
+                    ) mr ON tsi.stock_id = mr.stock_id
+                    WHERE tsi.trade_date = (SELECT MAX(trade_date) FROM twse_stock_insti)
+                    AND tsi.stock_id NOT LIKE '00%'
+                    GROUP BY COALESCE(mr.industry_type, '未分類')
+                )
+                SELECT 
+                    industry_type,
+                    market,
+                    foreign_net_amount,
+                    investment_trust_net_amount,
+                    dealer_net_amount,
+                    total_net_amount,
+                    stock_count,
+                    ROW_NUMBER() OVER (ORDER BY ABS(total_net_amount) DESC) as rank_in_market
+                FROM industry_trading
+                ORDER BY ABS(total_net_amount) DESC
+            """
+            
+            # 查詢上櫃三大法人買賣超產業
+            tpex_query = """
+                WITH industry_trading AS (
+                    SELECT 
+                        COALESCE(mr.industry_type, '未分類') as industry_type,
+                        'TPEX' as market,
+                        SUM(tsi.foreign_net) as foreign_net_amount,
+                        SUM(tsi.investment_trust_net) as investment_trust_net_amount,
+                        SUM(tsi.dealer_net) as dealer_net_amount,
+                        SUM(tsi.total_net) as total_net_amount,
+                        COUNT(DISTINCT tsi.stock_id) as stock_count
+                    FROM tpex_stock_insti tsi
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (stock_id)
+                            stock_id, industry_type, report_month
+                        FROM monthly_revenue
+                        ORDER BY stock_id, report_month DESC
+                    ) mr ON tsi.stock_id = mr.stock_id
+                    WHERE tsi.trade_date = (SELECT MAX(trade_date) FROM tpex_stock_insti)
+                    AND tsi.stock_id NOT LIKE '00%'
+                    GROUP BY COALESCE(mr.industry_type, '未分類')
+                )
+                SELECT 
+                    industry_type,
+                    market,
+                    foreign_net_amount,
+                    investment_trust_net_amount,
+                    dealer_net_amount,
+                    total_net_amount,
+                    stock_count,
+                    ROW_NUMBER() OVER (ORDER BY ABS(total_net_amount) DESC) as rank_in_market
+                FROM industry_trading
+                ORDER BY ABS(total_net_amount) DESC
+            """
+            
+            # 執行查詢
+            tse_data = await conn.fetch(tse_query)
+            tpex_data = await conn.fetch(tpex_query)
+            
+            # 轉換結果
+            tse_result = [dict(row) for row in tse_data]
+            tpex_result = [dict(row) for row in tpex_data]
+            
+            return {
+                "success": True,
+                "message": "獲取三大法人買賣超產業成功",
+                "data": {
+                    "tse": tse_result,
+                    "tpex": tpex_result
+                }
+            }
+            
+        finally:
+            await close_connection(conn)
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取三大法人買賣超產業失敗: {str(e)}")
+
+@postgres_router.get("/institutional-trading/industry-details/{market}/{industry_type}")
+async def get_industry_trading_details(market: str, industry_type: str):
+    """獲取特定產業的詳細買賣超標的內容"""
+    try:
+        conn = await get_connection()
+        try:
+            # 根據市場選擇對應的表
+            table_name = "twse_stock_insti" if market.upper() == "TSE" else "tpex_stock_insti"
+            
+            # 根據市場選擇不同的欄位名稱
+            if market.upper() == "TSE":
+                query = f"""
+                    SELECT 
+                        tsi.stock_id,
+                        tsi.stock_name,
+                        tsi.foreign_excl_dealer_net + tsi.foreign_dealer_net as foreign_net_amount,
+                        tsi.investment_trust_net as investment_trust_net_amount,
+                        tsi.dealer_self_net + tsi.dealer_hedge_net as dealer_net_amount,
+                        tsi.total_net as total_net_amount,
+                        tsi.trade_date
+                    FROM {table_name} tsi
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (stock_id)
+                            stock_id, industry_type, report_month
+                        FROM monthly_revenue
+                        ORDER BY stock_id, report_month DESC
+                    ) mr ON tsi.stock_id = mr.stock_id
+                    WHERE tsi.trade_date = (SELECT MAX(trade_date) FROM {table_name})
+                    AND COALESCE(mr.industry_type, '未分類') = $1
+                    AND tsi.stock_id NOT LIKE '00%'
+                    ORDER BY ABS(tsi.total_net) DESC
+                """
+            else:  # TPEX
+                query = f"""
+                    SELECT 
+                        tsi.stock_id,
+                        tsi.stock_name,
+                        tsi.foreign_net as foreign_net_amount,
+                        tsi.investment_trust_net as investment_trust_net_amount,
+                        tsi.dealer_net as dealer_net_amount,
+                        tsi.total_net as total_net_amount,
+                        tsi.trade_date
+                    FROM {table_name} tsi
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (stock_id)
+                            stock_id, industry_type, report_month
+                        FROM monthly_revenue
+                        ORDER BY stock_id, report_month DESC
+                    ) mr ON tsi.stock_id = mr.stock_id
+                    WHERE tsi.trade_date = (SELECT MAX(trade_date) FROM {table_name})
+                    AND COALESCE(mr.industry_type, '未分類') = $1
+                    AND tsi.stock_id NOT LIKE '00%'
+                    ORDER BY ABS(tsi.total_net) DESC
+                """
+            
+            rows = await conn.fetch(query, industry_type)
+            
+            # 轉換結果
+            data = [dict(row) for row in rows]
+            
+            return {
+                "success": True,
+                "message": f"獲取{industry_type}產業詳細買賣超成功",
+                "data": data,
+                "industry_type": industry_type,
+                "market": market
+            }
+            
+        finally:
+            await close_connection(conn)
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取產業詳細買賣超失敗: {str(e)}")

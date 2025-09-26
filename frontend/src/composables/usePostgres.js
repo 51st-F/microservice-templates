@@ -48,12 +48,13 @@ export function usePostgres() {
     })
   }
 
-  const executeQuery = async (query, limit = 100, offset = 0) => {
+  const executeQuery = async (query, limit = 100, offset = 0, params = []) => {
     return await apiCall(async () => {
       const response = await axios.post('http://localhost:8000/postgres/query', {
         query,
         limit,
-        offset
+        offset,
+        params
       })
       return response.data
     })

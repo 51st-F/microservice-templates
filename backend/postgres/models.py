@@ -85,3 +85,4 @@ class CustomQueryRequest(BaseModel):
     query: str
     limit: Optional[int] = 100
     offset: Optional[int] = 0
+    params: Optional[List[Any]] = []
